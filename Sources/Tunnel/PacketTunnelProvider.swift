@@ -36,30 +36,27 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         Socks5Tunnel.quit()
-        LibXrayStopXray()
+        _ = LibXrayStopXray()
         completionHandler()
     }
     
     private func startXrayAndSocks(configJson: String) {
-        // Сохраняем конфиг во временную папку
         let tempDir = FileManager.default.temporaryDirectory
         let configFile = tempDir.appendingPathComponent("config.json")
         try? configJson.write(to: configFile, atomically: true, encoding: .utf8)
         
-        // Формируем запрос для LibXray
         let runRequest: [String: Any] = [
             "datDir": tempDir.path,
             "configPath": configFile.path
         ]
         
-        if let reqData = try? JSONSerialization.data(withJSONObject: runRequest),
-           let base64Req = reqData.base64EncodedString() as String? {
+        if let reqData = try? JSONSerialization.data(withJSONObject: runRequest) {
+            let base64Req = reqData.base64EncodedString()
             DispatchQueue.global(qos: .userInitiated).async {
                 _ = LibXrayRunXray(base64Req)
             }
         }
         
-        // Запускаем мост Tun2SocksKit для перенаправления трафика iOS в локальный SOCKS5 порт
         let socksConfig = """
         tunnel:
           mtu: 1500
@@ -71,7 +68,6 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         Socks5Tunnel.run(withConfig: .string(content: socksConfig)) { _ in }
     }
     
-    // Парсер ссылки vless://uuid@host:port?params#name в JSON-конфиг Xray
     private func buildXrayConfig(from urlString: String) -> String? {
         guard let url = URL(string: urlString),
               url.scheme == "vless",
