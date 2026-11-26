@@ -29,10 +29,10 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          set -o pipefail
           xcodebuild build -quiet \
             -project ProxymaConnect.xcodeproj \
             -scheme ProxymaConnect \
             -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO | grep -E "error:|Undefined|duplicate|BUILD"
-            
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tail -n 20
+          exit ${PIPESTATUS[0]}
+          
