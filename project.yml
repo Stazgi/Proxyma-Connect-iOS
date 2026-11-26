@@ -34,6 +34,7 @@ targets:
           - group.com.proxyma.connect
     dependencies:
       - target: PacketTunnel
+      - sdk: libresolv.tbd
 
   PacketTunnel:
     type: app-extension
@@ -59,3 +60,4 @@ targets:
         product: LibXray
       - package: Tun2SocksKit
         product: Tun2SocksKit
+      - sdk: libresolv.tbd
