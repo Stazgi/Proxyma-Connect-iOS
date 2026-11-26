@@ -36,7 +36,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         Socks5Tunnel.quit()
-        _ = LibXrayStopXray()
+        _ = LibXray.stopXray()
         completionHandler()
     }
     
@@ -53,7 +53,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         if let reqData = try? JSONSerialization.data(withJSONObject: runRequest) {
             let base64Req = reqData.base64EncodedString()
             DispatchQueue.global(qos: .userInitiated).async {
-                _ = LibXrayRunXray(base64Req)
+                _ = LibXray.runXray(base64Req)
             }
         }
         
