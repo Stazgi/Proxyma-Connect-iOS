@@ -34,4 +34,5 @@ jobs:
             -project ProxymaConnect.xcodeproj \
             -scheme ProxymaConnect \
             -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO | grep -E "error:|BUILD"
+            CODE_SIGNING_ALLOWED=NO | grep -E "error:|Undefined|duplicate|BUILD"
+            
