@@ -1,0 +1,42 @@
+name: ProxymaConnect
+options:
+  bundleIdPrefix: com.proxyma
+  deploymentTarget:
+    iOS: "16.0"
+
+packages:
+  LibXray:
+    url: https://github.com
+    from: "1.8.0"
+
+targets:
+  ProxymaConnect:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.proxyma.connect
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "Proxyma Connect"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - target: PacketTunnel
+      - package: LibXray
+
+  PacketTunnel:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources/Tunnel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.proxyma.connect.tunnel
+        INFOPLIST_KEY_NSExtension:
+          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).PacketTunnelProvider"
+    dependencies:
+      - package: LibXray
