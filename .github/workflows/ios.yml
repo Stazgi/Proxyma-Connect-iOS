@@ -13,10 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download LibXray Core
+      - name: Download Core Packages
         run: |
           mkdir -p Packages
           gh repo clone wanliyunyan/LibXray Packages/LibXray
+          gh repo clone EbrahimTahernejad/Tun2SocksKit Packages/Tun2SocksKit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -28,8 +29,9 @@ jobs:
 
       - name: Build iOS App (Unsigned)
         run: |
-          xcodebuild build \
+          xcodebuild build -quiet \
             -project ProxymaConnect.xcodeproj \
             -scheme ProxymaConnect \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO
+            
