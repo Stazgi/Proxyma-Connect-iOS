@@ -7,21 +7,35 @@ struct ServerItem: Identifiable, Codable, Equatable {
     let name: String
     let rawUrl: String
     var pingMs: Int?
+    var isFromSub: Bool = false
 }
 
 class ProxymaViewModel: ObservableObject {
     @Published var inputUrl: String = ""
     @Published var savedSubUrl: String = ""
+    @Published var subTitle: String = ""
     @Published var servers: [ServerItem] = []
     @Published var selectedServer: ServerItem?
     @Published var isConnected: Bool = false
     @Published var isLoading: Bool = false
     @Published var statusText: String = "Не подключено"
     
+    @Published var bypassRussia: Bool = true {
+        didSet { UserDefaults.standard.set(bypassRussia, forKey: "bypass_russia") }
+    }
+    @Published var blockAdsDns: Bool = false {
+        didSet { UserDefaults.standard.set(blockAdsDns, forKey: "block_ads_dns") }
+    }
+    
     private var manager: NETunnelProviderManager?
 
     init() {
         savedSubUrl = UserDefaults.standard.string(forKey: "saved_sub_url") ?? ""
+        subTitle = UserDefaults.standard.string(forKey: "saved_sub_title") ?? ""
+        if UserDefaults.standard.object(forKey: "bypass_russia") != nil {
+            bypassRussia = UserDefaults.standard.bool(forKey: "bypass_russia")
+        }
+        blockAdsDns = UserDefaults.standard.bool(forKey: "block_ads_dns")
         loadServers()
         loadTunnel()
     }
@@ -33,28 +47,64 @@ class ProxymaViewModel: ObservableObject {
         if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
             savedSubUrl = trimmed
             UserDefaults.standard.set(trimmed, forKey: "saved_sub_url")
-            fetchSubscription(from: trimmed, replaceExisting: false)
+            fetchSubscription(from: trimmed)
             inputUrl = ""
         } else {
-            parseLines(trimmed, replaceExisting: false)
+            parseLines(trimmed, isSub: false)
             inputUrl = ""
         }
     }
 
     func refreshSubscription() {
         guard !savedSubUrl.isEmpty else { return }
-        fetchSubscription(from: savedSubUrl, replaceExisting: true)
+        fetchSubscription(from: savedSubUrl)
     }
 
-    private func fetchSubscription(from urlString: String, replaceExisting: Bool) {
+    func deleteSubscription() {
+        savedSubUrl = ""
+        subTitle = ""
+        UserDefaults.standard.removeObject(forKey: "saved_sub_url")
+        UserDefaults.standard.removeObject(forKey: "saved_sub_title")
+        servers.removeAll { $0.isFromSub }
+        if !servers.contains(where: { $0.id == selectedServer?.id }) {
+            selectedServer = servers.first
+        }
+        saveServers()
+    }
+
+    func clearAllServers() {
+        deleteSubscription()
+        servers.removeAll()
+        selectedServer = nil
+        saveServers()
+    }
+        private func fetchSubscription(from urlString: String) {
         guard let url = URL(string: urlString) else { return }
         isLoading = true
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+        
+        var request = URLRequest(url: url)
+        request.setValue("ProxymaConnect/1.0", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
             DispatchQueue.main.async {
                 self?.isLoading = false
-                guard let data = data, let text = String(data: data, encoding: .utf8) else { return }
-                let decoded = self?.decodeBase64(text) ?? text
-                self?.parseLines(decoded, replaceExisting: replaceExisting)
+                guard let self = self, let data = data, let text = String(data: data, encoding: .utf8) else { return }
+                
+                var detectedName = url.host ?? "Подписка"
+                if let httpResp = response as? HTTPURLResponse,
+                   let rawTitle = httpResp.value(forHTTPHeaderField: "profile-title") {
+                    if rawTitle.hasPrefix("base64:"),
+                       let decodedTitle = self.decodeBase64(String(rawTitle.dropFirst(7))) {
+                        detectedName = decodedTitle
+                    } else if !rawTitle.isEmpty {
+                        detectedName = rawTitle
+                    }
+                }
+                self.subTitle = detectedName
+                UserDefaults.standard.set(detectedName, forKey: "saved_sub_title")
+                
+                let decoded = self.decodeBase64(text) ?? text
+                self.parseLines(decoded, isSub: true)
             }
         }.resume()
     }
@@ -113,17 +163,20 @@ class ProxymaViewModel: ObservableObject {
 
     func deleteServers(at offsets: IndexSet) {
         servers.remove(atOffsets: offsets)
+        if !servers.contains(where: { $0.id == selectedServer?.id }) {
+            selectedServer = servers.first
+        }
         saveServers()
     }
 
-    private func parseLines(_ text: String, replaceExisting: Bool) {
-        var newItems: [ServerItem] = replaceExisting ? [] : servers
+    private func parseLines(_ text: String, isSub: Bool) {
+        var newItems: [ServerItem] = isSub ? servers.filter { !$0.isFromSub } : servers
         let lines = text.components(separatedBy: .newlines)
         for line in lines {
             let clean = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if clean.hasPrefix("vless://") || clean.hasPrefix("vmess://") || clean.hasPrefix("trojan://") {
                 let name = extractName(from: clean)
-                newItems.append(ServerItem(name: name, rawUrl: clean))
+                newItems.append(ServerItem(name: name, rawUrl: clean, isFromSub: isSub))
             }
         }
         servers = newItems
@@ -189,7 +242,11 @@ class ProxymaViewModel: ObservableObject {
         let proto = NETunnelProviderProtocol()
         proto.providerBundleIdentifier = "com.proxyma.connect.tunnel"
         proto.serverAddress = server.name
-        proto.providerConfiguration = ["vless_url": server.rawUrl]
+        proto.providerConfiguration = [
+            "vless_url": server.rawUrl,
+            "bypass_russia": bypassRussia,
+            "block_ads_dns": blockAdsDns
+        ]
 
         targetManager.protocolConfiguration = proto
         targetManager.localizedDescription = "Proxyma Connect"
