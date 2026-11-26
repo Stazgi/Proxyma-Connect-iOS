@@ -16,7 +16,7 @@ jobs:
       - name: Download LibXray Core
         run: |
           mkdir -p Packages
-          gh repo clone EbrahimTahernejad/LibXray Packages/LibXray
+          gh repo clone wanliyunyan/LibXray Packages/LibXray
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
