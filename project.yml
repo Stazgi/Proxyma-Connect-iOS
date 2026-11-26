@@ -35,6 +35,7 @@ targets:
     dependencies:
       - target: PacketTunnel
       - sdk: libresolv.tbd
+      - sdk: libc++.tbd
 
   PacketTunnel:
     type: app-extension
@@ -61,3 +62,4 @@ targets:
       - package: Tun2SocksKit
         product: Tun2SocksKit
       - sdk: libresolv.tbd
+      - sdk: libc++.tbd
