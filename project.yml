@@ -6,8 +6,7 @@ options:
 
 packages:
   LibXray:
-    url: https://github.com
-    branch: main
+    path: Packages/LibXray
 
 targets:
   ProxymaConnect:
@@ -17,12 +16,20 @@ targets:
       - path: Sources/App
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.proxyma.connect
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        PRODUCT_BUNDLE_IDENTIFIER: "com.proxyma.connect"
         INFOPLIST_KEY_CFBundleDisplayName: "Proxyma Connect"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: true
+    entitlements:
+      path: Sources/App/ProxymaConnect.entitlements
+      properties:
+        com.apple.developer.networking.networkextension:
+          - packet-tunnel-provider
+        com.apple.security.application-groups:
+          - group.com.proxyma.connect
     dependencies:
       - target: PacketTunnel
 
@@ -33,9 +40,18 @@ targets:
       - path: Sources/Tunnel
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.proxyma.connect.tunnel
+        PRODUCT_BUNDLE_IDENTIFIER: "com.proxyma.connect.tunnel"
+        GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_NSExtension:
           NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).PacketTunnelProvider"
+    entitlements:
+      path: Sources/Tunnel/PacketTunnel.entitlements
+      properties:
+        com.apple.developer.networking.networkextension:
+          - packet-tunnel-provider
+        com.apple.security.application-groups:
+          - group.com.proxyma.connect
     dependencies:
       - package: LibXray
+        product: LibXray
