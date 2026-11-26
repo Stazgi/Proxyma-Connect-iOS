@@ -7,7 +7,7 @@ options:
 packages:
   LibXray:
     url: https://github.com
-    from: "1.8.0"
+    branch: main
 
 targets:
   ProxymaConnect:
@@ -25,7 +25,6 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
     dependencies:
       - target: PacketTunnel
-      - package: LibXray
 
   PacketTunnel:
     type: app-extension
