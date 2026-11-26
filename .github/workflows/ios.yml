@@ -13,11 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Core Packages
+      - name: Download Core Packages & Inspect Header
         run: |
           mkdir -p Packages
           gh repo clone wanliyunyan/LibXray Packages/LibXray
           gh repo clone EbrahimTahernejad/Tun2SocksKit Packages/Tun2SocksKit
+          gh release download 26.11.9 -R wanliyunyan/LibXray -p "LibXray.xcframework.zip"
+          unzip -q LibXray.xcframework.zip -d temp_xray
+          find temp_xray -name "*.h" -exec cat {} +
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
