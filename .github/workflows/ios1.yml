@@ -1,0 +1,47 @@
+name: Preview Proxyma Connect (Simulator)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-preview:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Core Packages
+        run: |
+          mkdir -p Packages
+          gh repo clone wanliyunyan/LibXray Packages/LibXray
+          gh repo clone EbrahimTahernejad/Tun2SocksKit Packages/Tun2SocksKit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build -quiet \
+            -project ProxymaConnect.xcodeproj \
+            -scheme ProxymaConnect \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Zip App for Preview
+        run: |
+          cd build/Build/Products/Debug-iphonesimulator
+          zip -r ../../../../ProxymaConnect-Simulator.zip ProxymaConnect.app
+
+      - name: Upload Simulator App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxymaConnect-Simulator
+          path: ProxymaConnect-Simulator.zip
