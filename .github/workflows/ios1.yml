@@ -25,19 +25,21 @@ jobs:
       - name: Generate Xcode Project
         run: xcodegen generate
 
-      - name: Build for iOS Simulator
+      - name: Build for iOS Simulator (x86_64)
         run: |
           xcodebuild build -quiet \
             -project ProxymaConnect.xcodeproj \
             -scheme ProxymaConnect \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -arch x86_64 \
+            ONLY_ACTIVE_ARCH=NO \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Zip App for Preview
         run: |
           cd build/Build/Products/Debug-iphonesimulator
+          rm -rf ProxymaConnect.app/PlugIns
           zip -r ../../../../ProxymaConnect-Simulator.zip ProxymaConnect.app
 
       - name: Upload Simulator App
@@ -45,3 +47,4 @@ jobs:
         with:
           name: ProxymaConnect-Simulator
           path: ProxymaConnect-Simulator.zip
+          
