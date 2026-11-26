@@ -65,7 +65,17 @@ struct ContentView: View {
                 .padding(.horizontal)
 
                 List {
-                    Section(header: Text("Серверы (\(vm.servers.count))")) {
+                    Section(header: HStack {
+                        Text("Серверы (\(vm.servers.count))")
+                        Spacer()
+                        if !vm.servers.isEmpty {
+                            Button(action: vm.pingAllServers) {
+                                Label("Пинг", systemImage: "speedometer")
+                                    .font(.caption)
+                                    .textCase(.none)
+                            }
+                        }
+                    }) {
                         if vm.servers.isEmpty {
                             Text("Добавьте ключ vless:// или ссылку подписки")
                                 .foregroundColor(.secondary)
@@ -77,11 +87,24 @@ struct ContentView: View {
                                         Text(server.name)
                                             .font(.body)
                                             .lineLimit(1)
-                                        Text(server.rawUrl.prefix(28) + "...")
+                                        Text(server.rawUrl.prefix(26) + "...")
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
                                     }
                                     Spacer()
+                                    
+                                    if let ms = server.pingMs {
+                                        if ms > 0 {
+                                            Text("\(ms) ms")
+                                                .font(.caption.monospacedDigit())
+                                                .foregroundColor(ms < 150 ? .green : (ms < 350 ? .orange : .red))
+                                        } else {
+                                            Text("Таймаут")
+                                                .font(.caption2)
+                                                .foregroundColor(.red)
+                                        }
+                                    }
+                                    
                                     if vm.selectedServer?.id == server.id {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(.blue)
@@ -111,10 +134,17 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Вставить") {
-                        if let paste = UIPasteboard.general.string {
-                            vm.inputUrl = paste
-                            vm.importFromInput()
+                    HStack(spacing: 12) {
+                        if !vm.savedSubUrl.isEmpty {
+                            Button(action: vm.refreshSubscription) {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                        }
+                        Button("Вставить") {
+                            if let paste = UIPasteboard.general.string {
+                                vm.inputUrl = paste
+                                vm.importFromInput()
+                            }
                         }
                     }
                 }
