@@ -12,23 +12,24 @@ struct ProxymaApp: App {
 
 struct ContentView: View {
     @StateObject private var vm = ProxymaViewModel()
+    @State private var showSettings = false
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                VStack(spacing: 14) {
+            VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     Button(action: vm.toggleTunnel) {
                         ZStack {
                             Circle()
                                 .fill(vm.isConnected ? Color.green.opacity(0.2) : Color.blue.opacity(0.15))
-                                .frame(width: 130, height: 130)
+                                .frame(width: 124, height: 124)
                             
                             Circle()
                                 .stroke(vm.isConnected ? Color.green : Color.blue, lineWidth: 3)
-                                .frame(width: 110, height: 110)
+                                .frame(width: 104, height: 104)
                             
                             Image(systemName: "power")
-                                .font(.system(size: 42, weight: .bold))
+                                .font(.system(size: 40, weight: .bold))
                                 .foregroundColor(vm.isConnected ? .green : .blue)
                         }
                     }
@@ -44,7 +45,7 @@ struct ContentView: View {
                             .foregroundColor(.white.opacity(0.8))
                     }
                 }
-                .padding(.top, 16)
+                .padding(.top, 12)
 
                 HStack(spacing: 8) {
                     TextField("Вставьте подписку или vless://", text: $vm.inputUrl)
@@ -65,7 +66,38 @@ struct ContentView: View {
                 .padding(.horizontal)
 
                 List {
-                    Section(header: HStack {
+                    if !vm.savedSubUrl.isEmpty {
+                        Section(header: Text("Активная подписка")) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(vm.subTitle.isEmpty ? "Подписка" : vm.subTitle)
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                    Text(vm.savedSubUrl)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                
+                                Button(action: vm.refreshSubscription) {
+                                    Image(systemName: "arrow.clockwise.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(.borderless)
+                                
+                                Button(action: vm.deleteSubscription) {
+                                    Image(systemName: "trash.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                                        Section(header: HStack {
                         Text("Серверы (\(vm.servers.count))")
                         Spacer()
                         if !vm.servers.isEmpty {
@@ -134,21 +166,68 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        if !vm.savedSubUrl.isEmpty {
-                            Button(action: vm.refreshSubscription) {
-                                Image(systemName: "arrow.clockwise")
-                            }
-                        }
+                    HStack(spacing: 14) {
                         Button("Вставить") {
                             if let paste = UIPasteboard.general.string {
                                 vm.inputUrl = paste
                                 vm.importFromInput()
                             }
                         }
+                        Button(action: { showSettings = true }) {
+                            Image(systemName: "gearshape.fill")
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
             }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(vm: vm)
+            }
         }
+    }
+}
+
+struct SettingsView: View {
+    @ObservedObject var vm: ProxymaViewModel
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Маршрутизация"), footer: Text("Российские сайты (.ru, .рф), банки и Госуслуги будут открываться напрямую без задержек.")) {
+                    Toggle("Обход сайтов РФ (Direct)", isOn: $vm.bypassRussia)
+                }
+
+                Section(header: Text("Безопасность и DNS"), footer: Text("Использует защищённый DNS AdGuard для блокировки трекеров и баннеров.")) {
+                    Toggle("Блокировка рекламы (AdGuard DNS)", isOn: $vm.blockAdsDns)
+                }
+
+                Section(header: Text("Управление данными")) {
+                    Button(role: .destructive, action: {
+                        vm.clearAllServers()
+                        dismiss()
+                    }) {
+                        Label("Удалить все серверы и подписки", systemImage: "trash")
+                    }
+                }
+
+                Section(header: Text("О приложении")) {
+                    HStack {
+                        Text("Версия")
+                        Spacer()
+                        Text("1.0.0 (Xray Core)")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Настройки")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Готово") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
