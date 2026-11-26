@@ -36,7 +36,11 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         Socks5Tunnel.quit()
-        _ = CGoStopXray()
+        let stopReq: [String: Any] = ["method": "stopXray"]
+        if let data = try? JSONSerialization.data(withJSONObject: stopReq),
+           let jsonStr = String(data: data, encoding: .utf8) {
+            _ = LibXrayInvoke(jsonStr)
+        }
         completionHandler()
     }
     
@@ -46,17 +50,15 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         try? configJson.write(to: configFile, atomically: true, encoding: .utf8)
         
         let runRequest: [String: Any] = [
+            "method": "runXray",
             "datDir": tempDir.path,
             "configPath": configFile.path
         ]
         
-        if let reqData = try? JSONSerialization.data(withJSONObject: runRequest) {
-            let base64Req = reqData.base64EncodedString()
+        if let reqData = try? JSONSerialization.data(withJSONObject: runRequest),
+           let reqStr = String(data: reqData, encoding: .utf8) {
             DispatchQueue.global(qos: .userInitiated).async {
-                base64Req.withCString { cStr in
-                    let mutableCStr = UnsafeMutablePointer(mutating: cStr)
-                    _ = CGoRunXray(mutableCStr)
-                }
+                _ = LibXrayInvoke(reqStr)
             }
         }
         
