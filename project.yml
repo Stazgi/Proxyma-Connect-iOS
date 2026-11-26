@@ -7,6 +7,8 @@ options:
 packages:
   LibXray:
     path: Packages/LibXray
+  Tun2SocksKit:
+    path: Packages/Tun2SocksKit
 
 targets:
   ProxymaConnect:
@@ -55,3 +57,5 @@ targets:
     dependencies:
       - package: LibXray
         product: LibXray
+      - package: Tun2SocksKit
+        product: Tun2SocksKit
