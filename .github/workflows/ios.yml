@@ -38,3 +38,4 @@ jobs:
             -scheme ProxymaConnect \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO | grep -E "error:|BUILD"
+            
