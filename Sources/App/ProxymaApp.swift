@@ -160,7 +160,7 @@ struct ContentView: View {
                         Image(systemName: "shield.lefthalf.filled")
                             .foregroundColor(.blue)
                             .font(.subheadline)
-                        Text("Proxyma Connect")
+                        Text("NexRay")
                             .font(.headline)
                             .fontWeight(.semibold)
                     }
