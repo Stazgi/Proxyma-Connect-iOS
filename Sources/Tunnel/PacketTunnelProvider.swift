@@ -9,9 +9,17 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         guard let proto = self.protocolConfiguration as? NETunnelProviderProtocol,
-              let vlessUrl = proto.providerConfiguration?["vless_url"] as? String,
-              let configJson = buildXrayConfig(from: vlessUrl) else {
-            completionHandler(NSError(domain: "com.proxyma.connect", code: 1, userInfo: [NSLocalizedDescriptionKey: "Неверный формат ссылки VLESS"]))
+              let conf = proto.providerConfiguration,
+              let vlessUrl = conf["vless_url"] as? String else {
+            completionHandler(NSError(domain: "com.proxyma.connect", code: 1, userInfo: [NSLocalizedDescriptionKey: "Неверный ключ"]))
+            return
+        }
+        
+        let bypassRussia = (conf["bypass_russia"] as? Bool) ?? true
+        let blockAdsDns = (conf["block_ads_dns"] as? Bool) ?? false
+        
+        guard let configJson = buildXrayConfig(from: vlessUrl, bypassRussia: bypassRussia) else {
+            completionHandler(NSError(domain: "com.proxyma.connect", code: 2, userInfo: [NSLocalizedDescriptionKey: "Ошибка конфигурации"]))
             return
         }
         
@@ -19,7 +27,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         let ipv4 = NEIPv4Settings(addresses: ["198.18.0.1"], subnetMasks: ["255.255.255.0"])
         ipv4.includedRoutes = [NEIPv4Route.default()]
         settings.ipv4Settings = ipv4
-        settings.dnsSettings = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
+        
+        let dnsServers = blockAdsDns ? ["94.140.14.14", "94.140.15.15"] : ["1.1.1.1", "8.8.8.8"]
+        settings.dnsSettings = NEDNSSettings(servers: dnsServers)
         settings.mtu = 1500
         
         setTunnelNetworkSettings(settings) { [weak self] error in
@@ -72,8 +82,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         """
         Socks5Tunnel.run(withConfig: .string(content: socksConfig)) { _ in }
     }
-    
-    private func buildXrayConfig(from urlString: String) -> String? {
+        private func buildXrayConfig(from urlString: String, bypassRussia: Bool) -> String? {
         guard let url = URL(string: urlString),
               url.scheme == "vless",
               let uuid = url.user,
@@ -135,6 +144,22 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             userDict["flow"] = flow
         }
         
+        var routingRules: [[String: Any]] = [
+            [
+                "type": "field",
+                "ip": ["geoip:private"],
+                "outboundTag": "direct"
+            ]
+        ]
+        
+        if bypassRussia {
+            routingRules.append([
+                "type": "field",
+                "domain": ["regexp:.*\\.ru$", "regexp:.*\\.xn--p1ai$"],
+                "outboundTag": "direct"
+            ])
+        }
+        
         let config: [String: Any] = [
             "log": ["loglevel": "warning"],
             "inbounds": [
@@ -160,7 +185,15 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                         ]
                     ],
                     "streamSettings": streamSettings
+                ],
+                [
+                    "tag": "direct",
+                    "protocol": "freedom"
                 ]
+            ],
+            "routing": [
+                "domainStrategy": "AsIs",
+                "rules": routingRules
             ]
         ]
         
