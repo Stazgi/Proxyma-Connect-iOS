@@ -83,7 +83,7 @@ class ProxymaViewModel: ObservableObject {
         isLoading = true
         
         var request = URLRequest(url: url)
-        request.setValue("ProxymaConnect/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("NexRay/1.0", forHTTPHeaderField: "User-Agent")
         
         URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
             DispatchQueue.main.async {
@@ -249,7 +249,7 @@ class ProxymaViewModel: ObservableObject {
         ]
 
         targetManager.protocolConfiguration = proto
-        targetManager.localizedDescription = "Proxyma Connect"
+        targetManager.localizedDescription = "NexRay"
         targetManager.isEnabled = true
 
         targetManager.saveToPreferences { [weak self] error in
