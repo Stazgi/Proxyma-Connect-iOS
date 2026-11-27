@@ -1,4 +1,4 @@
-name: Nexray
+name: ProxymaConnect
 options:
   bundleIdPrefix: com.proxyma
   deploymentTarget:
